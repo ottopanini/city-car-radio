@@ -104,8 +104,20 @@ func getStation(line string) (station, error) {
 	}
 }
 
+var (
+	Client httpClient
+)
+
+func init() {
+	Client = &http.Client{}
+}
+
+type httpClient interface {
+	Get(url string) (*http.Response, error)
+}
+
 func getRedirectUrl(url string) (string, error) {
-	get, err := http.DefaultClient.Get(url)
+	get, err := Client.Get(url)
 	if err != nil {
 		return "", err
 	}
