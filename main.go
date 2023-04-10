@@ -104,22 +104,13 @@ func getStation(line string) (station, error) {
 	}
 }
 
-var (
-	Client httpClient
-)
-
-func init() {
-	Client = &http.Client{}
-}
-
-type httpClient interface {
-	Get(url string) (*http.Response, error)
-}
-
 func getRedirectUrl(url string) (string, error) {
-	get, err := Client.Get(url)
+	get, err := http.DefaultClient.Get(url)
 	if err != nil {
 		return "", err
+	}
+	if get.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("%s", get.Status)
 	}
 
 	return get.Request.URL.String(), nil

@@ -1,47 +1,37 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
-	netUrl "net/url"
+	"net/http/httptest"
 	"testing"
 )
 
-type MockHhttpClient struct{}
-
-func (c *MockHhttpClient) Get(url string) (*http.Response, error) {
-	if url == "test_success" {
-		return &http.Response{
-			Request: &http.Request{
-				URL: &netUrl.URL{
-					Scheme: "https",
-					Host:   "icecast.omroep.nl",
-					Path:   "/radio1-bb-mp3",
-				},
-			},
-		}, nil
-	} else {
-		return nil, fmt.Errorf("test error")
-	}
-}
 func TestGetRedirectUrlShouldReturnError(t *testing.T) {
-	Client = &MockHhttpClient{}
-	_, err := getRedirectUrl("https://www.nporadio1.nl/live")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
 
-	if err == nil || err.Error() != "test error" {
+	_, err := getRedirectUrl(server.URL)
+
+	if err == nil || err.Error() != "404 Not Found" {
 		t.Errorf("Expected \"test error\" error, got %v", err)
 	}
 }
 
 func TestGetRedirectUrlShouldReturnRedirectUrl(t *testing.T) {
-	Client = &MockHhttpClient{}
-	url, err := getRedirectUrl("test_success")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "https://icecast.omroep.nl/radio1-bb-mp3", http.StatusFound)
+	}))
+	defer server.Close()
+
+	redirectUrl, err := getRedirectUrl(server.URL)
 
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
-	if url != "https://icecast.omroep.nl/radio1-bb-mp3" {
-		t.Errorf("Expected \"https://icecast.omroep.nl/radio1-bb-mp3\", got %v", url)
+	if redirectUrl != "https://icecast.omroep.nl/radio1-bb-mp3" {
+		t.Errorf("Expected \"https://icecast.omroep.nl/radio1-bb-mp3\", got %v", redirectUrl)
 	}
 }
