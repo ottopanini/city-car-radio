@@ -87,20 +87,20 @@ func getSourceStations() map[string]*station {
 			fmt.Printf("Error parsing line(%d): %s\n", i, err)
 			continue
 		}
-		stations[station.name] = &station
+		stations[station.name] = station
 	}
 
 	return stations
 }
 
-func getStation(line string) (station, error) {
+func getStation(line string) (*station, error) {
 	re := regexp.MustCompile(`station="([^|]*)\|([^"]*)"`)
 	split := re.FindStringSubmatch(line)
 
-	if len(split) != 3 {
-		return station{}, fmt.Errorf("invalid line: %s", line)
+	if len(split) != 3 || split[1] == "" || split[2] == "" {
+		return nil, fmt.Errorf("invalid line: %s", line)
 	} else {
-		return station{url: split[1], name: split[2]}, nil
+		return &station{url: split[1], name: split[2]}, nil
 	}
 }
 
