@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"net/http"
 	"os"
 	"regexp"
@@ -18,7 +19,7 @@ func (s station) toString() string {
 }
 
 func main() {
-	stations := getSourceStations()
+	stations := getSourceStations(openFile("redirectradio.ini"))
 
 	// for each station
 	// open url and parse header for redirect url
@@ -30,6 +31,15 @@ func main() {
 	}
 
 	writeStations(stations)
+}
+
+func openFile(fileName string) fs.File {
+	file, err := os.Open(fileName)
+	if err != nil {
+		fmt.Println("Error opening src file: ", err)
+		return nil
+	}
+	return file
 }
 
 func writeStations(stations map[string]*station) {
@@ -66,20 +76,11 @@ func writeStations(stations map[string]*station) {
 	}
 }
 
-func getSourceStations() map[string]*station {
+func getSourceStations(file fs.File) map[string]*station {
 	// read url from file in format: station="url|name"...
 	//fileNameRadio := "radio.ini"
-	fileNameRedirectRadio := "redirectradio.ini"
 	stations := make(map[string]*station, 0)
-
-	// read file
-	open, err := os.Open(fileNameRedirectRadio)
-	if err != nil {
-		fmt.Println("Error opening src file: ", err)
-		return stations
-	}
-
-	scanner := bufio.NewScanner(open)
+	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	for i := 0; scanner.Scan(); i++ {
 		station, err := getStation(scanner.Text())

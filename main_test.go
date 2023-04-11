@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"reflect"
 	"testing"
+	"testing/fstest"
 )
 
 func TestGetRedirectUrlShouldReturnError(t *testing.T) {
@@ -92,5 +93,43 @@ func TestGetStation(t *testing.T) {
 			t.Errorf("%s: %s", test.spec, err)
 		}
 		fmt.Printf("passed: %s\n", test.spec)
+	}
+}
+
+func TestGetSourceStations(t *testing.T) {
+	fsMap := fstest.MapFS{
+		"stations.txt": &fstest.MapFile{
+			Data: []byte(`station="http://fritz.de/livemp3_s|Fritz"
+			station="http://www.rockantenne.de/livemp3_s|Rockantenne"
+			station="RadioEins"`),
+		},
+	}
+
+	open, _ := fsMap.Open("stations.txt")
+
+	stations := getSourceStations(open)
+
+	if len(stations) != 2 {
+		t.Errorf("Expected 3 stations, got %v", len(stations))
+	}
+
+	if stations["Fritz"] == nil {
+		t.Errorf("Expected \"Fritz\" station")
+	}
+
+	if stations["Fritz"].url != "http://fritz.de/livemp3_s" {
+		t.Errorf("Expected \"http://fritz.de/livemp3_s\", got %v", stations["Fritz"].url)
+	}
+
+	if stations["Rockantenne"] == nil {
+		t.Errorf("Expected \"Rockantenne\" sration")
+	}
+
+	if stations["Rockantenne"].url != "http://www.rockantenne.de/livemp3_s" {
+		t.Errorf("Expected \"http://www.rockantenne.de/livemp3_s\", got %v", stations["Rockantenne"].url)
+	}
+
+	if stations["RadioEins"] != nil {
+		t.Errorf("Didn't expect \"RadioEins\" station")
 	}
 }
