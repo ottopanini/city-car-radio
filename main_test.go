@@ -133,3 +133,29 @@ func TestGetSourceStations(t *testing.T) {
 		t.Errorf("Didn't expect \"RadioEins\" station")
 	}
 }
+
+func TestReplaceUrlsByRedirects(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/redirect" {
+			http.Redirect(w, r, "https://icecast.omroep.nl/radio1-bb-mp3", http.StatusFound)
+		} else {
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+
+	stations := map[string]*station{
+		"Redirect": &station{name: "Redirect", url: server.URL + "/redirect"},
+		"NotFound": &station{name: "NotFound", url: server.URL},
+	}
+
+	replaceUrlsByRedirects(&stations)
+
+	if stations["Redirect"].url != "https://icecast.omroep.nl/radio1-bb-mp3" {
+		t.Errorf("Expected \"https://icecast.omroep.nl/radio1-bb-mp3\", got %v", stations["Redirect"].url)
+	}
+
+	if stations["NotFound"].url != server.URL {
+		t.Errorf("Expected \"%v\", got %v", server.URL, stations["NotFound"].url)
+	}
+}

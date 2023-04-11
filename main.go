@@ -21,16 +21,22 @@ func (s station) toString() string {
 func main() {
 	stations := getSourceStations(openFile("redirectradio.ini"))
 
+	replaceUrlsByRedirects(&stations)
+
+	fileNameRadio := "radio.ini"
+	content := generateRadioIniFileContent(openFile(fileNameRadio), stations)
+	writeFile(fileNameRadio, content)
+}
+
+func replaceUrlsByRedirects(stations *map[string]*station) {
 	// for each station
-	// open url and parse header for redirect url
-	for station := range stations {
-		url, err := getRedirectUrl(stations[station].url)
+	// open url and parse for redirect url
+	for station := range *stations {
+		url, err := getRedirectUrl((*stations)[station].url)
 		if err == nil {
-			stations[station].url = url
+			(*stations)[station].url = url
 		}
 	}
-
-	writeStations(stations)
 }
 
 func openFile(fileName string) fs.File {
@@ -39,19 +45,21 @@ func openFile(fileName string) fs.File {
 		fmt.Println("Error opening src file: ", err)
 		return nil
 	}
+	defer file.Close()
+
 	return file
 }
 
-func writeStations(stations map[string]*station) {
-	fileNameRadio := "radio.ini"
-
-	open, err := os.Open(fileNameRadio)
+func writeFile(fileName string, content string) {
+	err := os.WriteFile(fileName, []byte(content), 0644)
 	if err != nil {
-		fmt.Println("Error opening src file: ", err)
+		fmt.Println("Error writing file: ", err)
 		return
 	}
+}
 
-	scanner := bufio.NewScanner(open)
+func generateRadioIniFileContent(file fs.File, stations map[string]*station) string {
+	scanner := bufio.NewScanner(file)
 	scanner.Split(bufio.ScanLines)
 	var lines string
 	for i := 0; scanner.Scan(); i++ {
@@ -69,11 +77,7 @@ func writeStations(stations map[string]*station) {
 		}
 	}
 
-	err = os.WriteFile(fileNameRadio, []byte(lines), 0644)
-	if err != nil {
-		fmt.Println("Error writing file: ", err)
-		return
-	}
+	return lines
 }
 
 func getSourceStations(file fs.File) map[string]*station {
