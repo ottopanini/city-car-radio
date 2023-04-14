@@ -145,8 +145,8 @@ func TestReplaceUrlsByRedirects(t *testing.T) {
 	defer server.Close()
 
 	stations := map[string]*station{
-		"Redirect": &station{name: "Redirect", url: server.URL + "/redirect"},
-		"NotFound": &station{name: "NotFound", url: server.URL},
+		"Redirect": {name: "Redirect", url: server.URL + "/redirect"},
+		"NotFound": {name: "NotFound", url: server.URL},
 	}
 
 	replaceUrlsByRedirects(&stations)
@@ -157,5 +157,35 @@ func TestReplaceUrlsByRedirects(t *testing.T) {
 
 	if stations["NotFound"].url != server.URL {
 		t.Errorf("Expected \"%v\", got %v", server.URL, stations["NotFound"].url)
+	}
+}
+
+func TestStationToString(t *testing.T) {
+	givenStation := station{url: "testUrl", name: "testName"}
+
+	expected := "station=\"testUrl|testName\""
+	if givenStation.toString() != expected {
+		t.Errorf("Expected: %s Got: %s", expected, givenStation.toString())
+	}
+}
+
+func TestGenerateRadioIniFileContent(t *testing.T) {
+	expected := `station="http://redirected|Fritz"
+			station="http://www.rockantenne.de/livemp3_s|Rockantenne"`
+	fsMap := fstest.MapFS{
+		"stations.txt": &fstest.MapFile{
+			Data: []byte(`station="http://fritz.de/livemp3_s|Fritz"
+			station="http://www.rockantenne.de/livemp3_s|Rockantenne"`),
+		},
+	}
+
+	open, _ := fsMap.Open("stations.txt")
+
+	result := generateRadioIniFileContent(open, map[string]*station{
+		"Fritz": {name: "Fritz", url: "http://redirected"},
+	})
+
+	if expected != result {
+		t.Errorf("Expected: %s Got: %s", expected, result)
 	}
 }

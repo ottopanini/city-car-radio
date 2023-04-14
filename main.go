@@ -45,7 +45,12 @@ func openFile(fileName string) fs.File {
 		fmt.Println("Error opening src file: ", err)
 		return nil
 	}
-	defer file.Close()
+	defer func(file *os.File) {
+		err := file.Close()
+		if err != nil {
+			fmt.Println("Error closing file: ", err)
+		}
+	}(file)
 
 	return file
 }
